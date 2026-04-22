@@ -1,0 +1,41 @@
+{% extends "layout.html" %}
+{% block title %}User Profile{% endblock %}
+{% block page_title %}User Profile{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="glass-card">
+            <div class="d-flex align-items-center mb-4">
+                <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--purple));display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#fff;margin-right:1rem;">
+                    {{ user_profile.name[0] if user_profile.name else 'P' }}
+                </div>
+                <div>
+                    <h3 class="fw-bold mb-0">{{ user_profile.name }}</h3>
+                    <p class="text-muted mb-0">{{ user_profile.specialty }} at {{ user_profile.institution }}</p>
+                </div>
+            </div>
+
+            <form action="{{ url_for('profile') }}" method="POST">
+                <div class="mb-3">
+                    <label class="form-label small fw-bold text-uppercase text-muted">Full Name</label>
+                    <input type="text" name="name" class="form-control bg-transparent border-secondary text-white" value="{{ profile.name }}" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold text-uppercase text-muted">Institution</label>
+                    <input type="text" name="institution" class="form-control bg-transparent border-secondary text-white" value="{{ profile.institution }}" required>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label small fw-bold text-uppercase text-muted">Specialty</label>
+                    <input type="text" name="specialty" class="form-control bg-transparent border-secondary text-white" value="{{ profile.specialty }}" required>
+                </div>
+                <button type="submit" class="btn btn-primary w-100">Save Profile</button>
+            </form>
+            
+            <div class="mt-4 pt-3 border-top border-secondary">
+                <a href="{{ url_for('overview') }}" class="btn btn-outline-secondary btn-sm w-100">Back to Dashboard</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

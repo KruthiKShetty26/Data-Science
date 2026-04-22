@@ -1,0 +1,88 @@
+{% extends "layout.html" %}
+{% block title %}Compare Patients{% endblock %}
+{% block page_title %}Compare Patients{% endblock %}
+
+{% block content %}
+<h1 class="page-heading">Compare Patients</h1>
+<p class="page-sub">Select two patients to compare their longitudinal acoustic feature profiles side-by-side.</p>
+
+<div class="glass-card mb-4">
+    <form method="get" action="{{ url_for('compare_patients') }}">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-5">
+                <label class="form-label" style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;font-weight:600;">Patient A</label>
+                <select name="pid_a" class="form-select" style="background:var(--bg-2);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;">
+                    <option value="">— Select Patient —</option>
+                    {% for pid in patient_ids %}
+                    <option value="{{ pid }}" {% if pid == selected_a %}selected{% endif %}>#{{ pid }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-1 text-center pb-2">
+                <i class="fa-solid fa-right-left" style="color:var(--text-muted);font-size:18px;"></i>
+            </div>
+            <div class="col-md-5">
+                <label class="form-label" style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;font-weight:600;">Patient B</label>
+                <select name="pid_b" class="form-select" style="background:var(--bg-2);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;">
+                    <option value="">— Select Patient —</option>
+                    {% for pid in patient_ids %}
+                    <option value="{{ pid }}" {% if pid == selected_b %}selected{% endif %}>#{{ pid }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-1">
+                <button type="submit" class="btn-custom btn w-100">Compare</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+{% if chart_data_a and chart_data_b %}
+<div class="row g-3 mb-4">
+    <div class="col-md-6"><div class="glass-card"><div class="section-title mb-2"><i class="fa-solid fa-chart-line"></i> MFCC 1</div><div id="chart_mfcc_1" style="height:200px;"></div></div></div>
+    <div class="col-md-6"><div class="glass-card"><div class="section-title mb-2"><i class="fa-solid fa-chart-line"></i> RMS Energy</div><div id="chart_rms" style="height:200px;"></div></div></div>
+    <div class="col-md-6"><div class="glass-card"><div class="section-title mb-2"><i class="fa-solid fa-chart-line"></i> Spectral Centroid</div><div id="chart_centroid" style="height:200px;"></div></div></div>
+    <div class="col-md-6"><div class="glass-card"><div class="section-title mb-2"><i class="fa-solid fa-chart-line"></i> Zero-Crossing Rate</div><div id="chart_zcr" style="height:200px;"></div></div></div>
+</div>
+<div class="row g-3">
+    {% for info in [info_a, info_b] %}
+    <div class="col-md-6">
+        <div class="glass-card">
+            <div class="section-title mb-3"><i class="fa-solid fa-user"></i> Patient #{{ info.patient_id }}</div>
+            <div class="d-flex flex-column gap-2">
+                <div class="d-flex justify-content-between"><span style="color:var(--text-secondary);">Risk Score</span><strong>{{ "%.1f"|format(info.risk_score) }}</strong></div>
+                <div class="d-flex justify-content-between"><span style="color:var(--text-secondary);">Clinical Stage</span>
+                    <span class="risk-badge {{ info.risk_class }}">{{ info.risk_level }}</span>
+                </div>
+                <div class="d-flex justify-content-between"><span style="color:var(--text-secondary);">Dominant Label</span><strong>{{ info.dominant_label }}</strong></div>
+                <div class="d-flex justify-content-between"><span style="color:var(--text-secondary);">Total Cycles</span><strong>{{ info.num_cycles }}</strong></div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="coming-soon-wrap">
+    <div class="coming-soon-icon" style="background:rgba(59,130,246,0.12);"><i class="fa-solid fa-code-compare" style="color:var(--accent);"></i></div>
+    <h3 style="font-weight:700;">Select Two Patients</h3>
+    <p style="color:var(--text-secondary);max-width:340px;">Choose Patient A and Patient B above to generate a side-by-side feature comparison.</p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if chart_data_a and chart_data_b %}
+<script>
+const ca = {{ chart_data_a | tojson }};
+const cb = {{ chart_data_b | tojson }};
+function norm(arr){const mn=Math.min(...arr),mx=Math.max(...arr);return arr.map(x=>mx===mn?0.5:(x-mn)/(mx-mn));}
+const L={paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',font:{color:'#7A8FAF',family:'Inter',size:11},margin:{t:5,r:10,l:10,b:30},xaxis:{gridcolor:'rgba(255,255,255,0.05)',zeroline:false},yaxis:{gridcolor:'rgba(255,255,255,0.05)',zeroline:false,range:[-0.1,1.1]},legend:{orientation:'h',y:-0.25}};
+[['mfcc_1','mfcc_1'],['rms','rms'],['centroid','centroid'],['zcr','zcr']].forEach(([f,id])=>{
+    Plotly.newPlot('chart_'+id,[
+        {x:ca.cycles,y:norm(ca[f]),name:'Patient A',type:'scatter',mode:'lines+markers',line:{color:'#3B82F6',width:2}},
+        {x:cb.cycles,y:norm(cb[f]),name:'Patient B',type:'scatter',mode:'lines+markers',line:{color:'#EF4444',width:2,dash:'dot'}}
+    ],{...L},{responsive:true,displayModeBar:false});
+});
+</script>
+{% endif %}
+{% endblock %}

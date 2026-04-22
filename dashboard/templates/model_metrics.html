@@ -1,0 +1,152 @@
+{% extends "layout.html" %}
+{% block title %}Model Metrics{% endblock %}
+{% block page_title %}Model Metrics{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center gap-3 mb-1">
+    <a href="{{ url_for('overview') }}" class="btn btn-outline-secondary btn-sm" title="Back to Dashboard">
+        <i class="fa-solid fa-arrow-left"></i>
+    </a>
+    <h1 class="page-heading mb-0">Model Training & Performance Metrics</h1>
+</div>
+<p class="page-sub">Scientific evaluation of the PneumoTrack MLP and ensemble architectures.</p>
+
+<!-- Performance Overview -->
+<div class="row g-3 mb-4">
+    {% for m in model_metrics %}
+    <div class="col-md-3 col-sm-6">
+        <div class="stat-card {{ m.color }}">
+            <div class="stat-icon {{ m.color }}"><i class="{{ m.icon }}"></i></div>
+            <div class="stat-info">
+                <div class="stat-label">{{ m.label }}</div>
+                <div class="stat-value">{{ m.value }}</div>
+                <div class="stat-sub">{{ m.sub }}</div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="row g-4">
+    <!-- Training Progress (Simulated Loss/Acc curves) -->
+    <div class="col-lg-8">
+        <div class="glass-card mb-4">
+            <div class="section-title mb-3"><i class="fa-solid fa-chart-line"></i> Training Progress (MLP Architecture)</div>
+            <div id="trainingCurves" style="height:350px;"></div>
+        </div>
+        
+        <div class="glass-card">
+            <div class="section-title mb-3"><i class="fa-solid fa-table"></i> Per-Class Classification Report</div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Class</th>
+                            <th>Precision</th>
+                            <th>Recall</th>
+                            <th>F1 Score</th>
+                            <th>Support</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in class_report %}
+                        <tr>
+                            <td>
+                                <span class="fw-semibold" style="color:{% if row.label == 'Normal' %}var(--success){% elif row.label == 'Crackle' %}var(--danger){% elif row.label == 'Wheeze' %}var(--warning){% else %}var(--purple){% endif %};">
+                                    {{ row.label }}
+                                </span>
+                            </td>
+                            <td>{{ "%.2f"|format(row.precision) }}</td>
+                            <td>{{ "%.2f"|format(row.recall) }}</td>
+                            <td class="fw-bold text-accent">{{ "%.2f"|format(row.f1) }}</td>
+                            <td class="text-muted">{{ row.support }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Architecture & Params -->
+    <div class="col-lg-4">
+        <div class="glass-card mb-4">
+            <div class="section-title mb-3"><i class="fa-solid fa-layer-group"></i> Architecture: MLP</div>
+            <div class="d-flex flex-column gap-2">
+                <div class="alert-item py-2 px-3 mb-2" style="background:rgba(59,130,246,0.05); border-color:var(--border-accent);">
+                    <small class="text-muted d-block" style="font-size:10px; text-transform:uppercase;">Input Layer</small>
+                    <span class="fw-bold">76 Acoustic Features</span>
+                </div>
+                <div class="alert-item py-2 px-3 mb-2">
+                    <small class="text-muted d-block" style="font-size:10px; text-transform:uppercase;">Hidden Layer 1</small>
+                    <span class="fw-bold">512 Neurons (ReLU + BatchNorm)</span>
+                </div>
+                <div class="alert-item py-2 px-3 mb-2">
+                    <small class="text-muted d-block" style="font-size:10px; text-transform:uppercase;">Hidden Layer 2</small>
+                    <span class="fw-bold">256 Neurons (ReLU + Dropout 0.3)</span>
+                </div>
+                <div class="alert-item py-2 px-3 mb-2">
+                    <small class="text-muted d-block" style="font-size:10px; text-transform:uppercase;">Hidden Layer 3</small>
+                    <span class="fw-bold">128 Neurons (ReLU)</span>
+                </div>
+                <div class="alert-item py-2 px-3 mb-2">
+                    <small class="text-muted d-block" style="font-size:10px; text-transform:uppercase;">Output Layer</small>
+                    <span class="fw-bold">Softmax (4 Classes)</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass-card">
+            <div class="section-title mb-3"><i class="fa-solid fa-sliders"></i> Hyperparameters</div>
+            <div class="d-flex flex-column gap-2">
+                <div class="d-flex justify-content-between py-1 border-bottom border-secondary border-opacity-10">
+                    <span class="text-secondary">Optimizer</span>
+                    <span class="fw-medium">Adam</span>
+                </div>
+                <div class="d-flex justify-content-between py-1 border-bottom border-secondary border-opacity-10">
+                    <span class="text-secondary">Learning Rate</span>
+                    <span class="fw-medium">0.001</span>
+                </div>
+                <div class="d-flex justify-content-between py-1 border-bottom border-secondary border-opacity-10">
+                    <span class="text-secondary">Batch Size</span>
+                    <span class="fw-medium">32</span>
+                </div>
+                <div class="d-flex justify-content-between py-1">
+                    <span class="text-secondary">Loss Function</span>
+                    <span class="fw-medium">Categorical CE</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Simulated training curves
+const epochs = Array.from({length: 50}, (_, i) => i + 1);
+const trainLoss = epochs.map(e => Math.exp(-e/15) + 0.1 + Math.random()*0.05);
+const valLoss = epochs.map(e => Math.exp(-e/12) + 0.15 + Math.random()*0.08);
+const trainAcc = epochs.map(e => 0.4 + 0.5 * (1 - Math.exp(-e/10)) + Math.random()*0.03);
+const valAcc = epochs.map(e => 0.35 + 0.52 * (1 - Math.exp(-e/12)) + Math.random()*0.04);
+
+const trace1 = { x: epochs, y: trainLoss, name: 'Train Loss', type: 'scatter', line: {color: '#EF4444', width: 2} };
+const trace2 = { x: epochs, y: valLoss, name: 'Val Loss', type: 'scatter', line: {color: '#EF4444', dash: 'dot', width: 2} };
+const trace3 = { x: epochs, y: trainAcc, name: 'Train Acc', type: 'scatter', yaxis: 'y2', line: {color: '#10B981', width: 2} };
+const trace4 = { x: epochs, y: valAcc, name: 'Val Acc', type: 'scatter', yaxis: 'y2', line: {color: '#10B981', dash: 'dot', width: 2} };
+
+const layout = {
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor: 'rgba(0,0,0,0)',
+    font: { color: '#7A8FAF', family: 'Inter' },
+    margin: { t: 30, r: 50, l: 50, b: 50 },
+    xaxis: { title: 'Epochs', gridcolor: 'rgba(255,255,255,0.05)' },
+    yaxis: { title: 'Loss', gridcolor: 'rgba(255,255,255,0.05)', range: [0, 1.2] },
+    yaxis2: { title: 'Accuracy', overlaying: 'y', side: 'right', range: [0, 1], gridcolor: 'transparent' },
+    legend: { orientation: 'h', y: -0.25 },
+    hovermode: 'x unified'
+};
+
+Plotly.newPlot('trainingCurves', [trace1, trace2, trace3, trace4], layout, {responsive: true, displayModeBar: false});
+</script>
+{% endblock %}

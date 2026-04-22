@@ -1,0 +1,128 @@
+{% extends "layout.html" %}
+{% block title %}Overview{% endblock %}
+{% block page_title %}PneumoTrack Overview{% endblock %}
+
+{% block content %}
+<!-- Top Stats Row -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3 col-sm-6">
+        <div class="stat-card blue">
+            <div class="stat-icon blue"><i class="fa-solid fa-users"></i></div>
+            <div class="stat-info">
+                <div class="stat-label">Total Patients</div>
+                <div class="stat-value">{{ stats.total_patients }}</div>
+                <div class="stat-sub">ICBHI 2017 Cohort</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="stat-card purple">
+            <div class="stat-icon purple"><i class="fa-solid fa-medal"></i></div>
+            <div class="stat-info">
+                <div class="stat-label">ICBHI Score</div>
+                <div class="stat-value">{{ stats.icbhi_score }}</div>
+                <div class="stat-sub">Cross-validated Mean</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="stat-card red">
+            <div class="stat-icon red"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            <div class="stat-info">
+                <div class="stat-label">Urgent (Stage 3)</div>
+                <div class="stat-value">{{ stats.high_risk }}</div>
+                <div class="stat-sub">Requires Review</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="stat-card green">
+            <div class="stat-icon green"><i class="fa-solid fa-wave-square"></i></div>
+            <div class="stat-info">
+                <div class="stat-label">Total Cycles</div>
+                <div class="stat-value">{{ stats.total_cycles }}</div>
+                <div class="stat-sub">Analyzed Samples</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Risk Distribution -->
+    <div class="col-lg-6">
+        <div class="glass-card">
+            <div class="section-title mb-3"><i class="fa-solid fa-chart-pie"></i> Risk Level Distribution</div>
+            <div id="riskChart" style="height: 300px;"></div>
+        </div>
+    </div>
+
+    <!-- Label Distribution -->
+    <div class="col-lg-6">
+        <div class="glass-card">
+            <div class="section-title mb-3"><i class="fa-solid fa-chart-bar"></i> Lung Sound Categories</div>
+            <div id="labelChart" style="height: 300px;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="mt-4">
+    <div class="glass-card">
+        <div class="section-title mb-3">System Quick Actions</div>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{{ url_for('alert_dashboard') }}" class="btn btn-outline-danger btn-sm px-3">
+                <i class="fa-solid fa-bell me-1"></i> View Alerts
+            </a>
+            <a href="{{ url_for('patient_monitor') }}" class="btn btn-outline-primary btn-sm px-3">
+                <i class="fa-solid fa-user-doctor me-1"></i> Patient Monitor
+            </a>
+            <a href="{{ url_for('live_predict') }}" class="btn btn-outline-success btn-sm px-3">
+                <i class="fa-solid fa-stethoscope me-1"></i> Live Predict
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Risk Chart
+const riskData = [{
+    values: [{{ stats.low_risk }}, {{ stats.medium_risk }}, {{ stats.high_risk }}],
+    labels: ['Stage 1 (Stable)', 'Stage 2 (Watch)', 'Stage 3 (Urgent)'],
+    type: 'pie',
+    hole: .4,
+    marker: { colors: ['#10B981', '#F59E0B', '#EF4444'] },
+    textinfo: 'label+percent',
+    hoverinfo: 'label+value'
+}];
+const riskLayout = {
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor: 'rgba(0,0,0,0)',
+    font: { color: '#7A8FAF', family: 'Inter' },
+    margin: { t: 0, r: 0, l: 0, b: 0 },
+    showlegend: false
+};
+Plotly.newPlot('riskChart', riskData, riskLayout, {responsive: true, displayModeBar: false});
+
+// Label Chart
+const labelData = [{
+    x: {{ stats.label_counts.keys()|list|tojson }},
+    y: {{ stats.label_counts.values()|list|tojson }},
+    type: 'bar',
+    marker: {
+        color: '#3B82F6',
+        opacity: 0.8
+    }
+}];
+const labelLayout = {
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor: 'rgba(0,0,0,0)',
+    font: { color: '#7A8FAF', family: 'Inter' },
+    margin: { t: 20, r: 20, l: 40, b: 40 },
+    xaxis: { gridcolor: 'rgba(255,255,255,0.05)', zeroline: false },
+    yaxis: { gridcolor: 'rgba(255,255,255,0.05)', zeroline: false }
+};
+Plotly.newPlot('labelChart', labelData, labelLayout, {responsive: true, displayModeBar: false});
+</script>
+{% endblock %}

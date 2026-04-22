@@ -1,0 +1,97 @@
+{% extends "layout.html" %}
+{% block title %}Alert Dashboard{% endblock %}
+{% block page_title %}Alert Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center gap-3 mb-1">
+    <a href="{{ url_for('overview') }}" class="btn btn-outline-secondary btn-sm" title="Back to Dashboard">
+        <i class="fa-solid fa-arrow-left"></i>
+    </a>
+    <h1 class="page-heading mb-0">Alert Dashboard</h1>
+</div>
+<p class="page-sub">Patients requiring immediate clinical attention (Stage 3 — Urgent), sorted by severity.</p>
+
+<!-- Summary Badges -->
+<div class="d-flex gap-3 mb-4 flex-wrap">
+    <div class="stat-card red" style="flex:1; min-width:160px;">
+        <div class="stat-icon red"><i class="fa-solid fa-circle-exclamation"></i></div>
+        <div class="stat-info">
+            <div class="stat-label">Critical Alerts</div>
+            <div class="stat-value">{{ stats.critical }}</div>
+            <div class="stat-sub">Stage 3 Patients</div>
+        </div>
+    </div>
+    <div class="stat-card amber" style="flex:1; min-width:160px;">
+        <div class="stat-icon amber"><i class="fa-solid fa-triangle-exclamation"></i></div>
+        <div class="stat-info">
+            <div class="stat-label">Warnings</div>
+            <div class="stat-value">{{ stats.warning }}</div>
+            <div class="stat-sub">Stage 2 Patients</div>
+        </div>
+    </div>
+    <div class="stat-card green" style="flex:1; min-width:160px;">
+        <div class="stat-icon green"><i class="fa-solid fa-check-double"></i></div>
+        <div class="stat-info">
+            <div class="stat-label">Stable</div>
+            <div class="stat-value">{{ stats.stable }}</div>
+            <div class="stat-sub">Stage 1 Patients</div>
+        </div>
+    </div>
+</div>
+
+<!-- Alert List -->
+<div class="glass-card p-0 overflow-hidden">
+    <div class="px-4 py-3" style="border-bottom:1px solid var(--border);">
+        <div class="section-title">
+            <i class="fa-solid fa-bell"></i>
+            Stage 3 Patients (Sorted by Risk)
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th class="ps-4">Patient</th>
+                    <th>Risk Score</th>
+                    <th>Clinical Level</th>
+                    <th>Dominant Label</th>
+                    <th>Cycles</th>
+                    <th class="pe-4 text-end">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in alerts %}
+                <tr>
+                    <td class="ps-4">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="alert-dot high"></div>
+                            <span class="fw-semibold">#{{ a.patient_id }}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fw-bold">{{ "%.1f"|format(a.risk_score) }}%</span>
+                            <div class="progress flex-grow-1" style="height:5px; width:80px;">
+                                <div class="progress-bar bg-danger" style="width:{{ a.risk_score if a.risk_score <= 100 else 100 }}%;"></div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="risk-badge high">
+                            <i class="fa-solid fa-triangle-exclamation me-1"></i> {{ a.risk_level }}
+                        </span>
+                    </td>
+                    <td><span style="color:var(--text-secondary);">{{ a.dominant_label }}</span></td>
+                    <td>{{ a.num_cycles }}</td>
+                    <td class="pe-4 text-end">
+                        <a href="{{ url_for('patient_detail', patient_id=a.patient_id) }}" class="btn-custom btn btn-sm">
+                            View <i class="fa-solid fa-arrow-right ms-1"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

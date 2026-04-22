@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>PneumoTrack Clinical Report - #{{ patient.patient_id }}</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; color: #1e293b; padding: 40px; line-height: 1.6; }
+        .header { border-bottom: 2px solid #3b82f6; padding-bottom: 20px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: flex-end; }
+        .logo { font-size: 24px; font-weight: 700; color: #3b82f6; }
+        .patient-info { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 40px; }
+        .info-box { background: #f8fafc; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; }
+        .label { font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+        .value { font-size: 18px; font-weight: 600; color: #0f172a; }
+        .stage { padding: 4px 12px; border-radius: 20px; font-size: 14px; font-weight: 600; }
+        .stage.high { background: #fee2e2; color: #ef4444; }
+        .stage.med { background: #fef3c7; color: #d97706; }
+        .stage.low { background: #dcfce7; color: #10b981; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th { text-align: left; border-bottom: 1px solid #e2e8f0; padding: 12px; color: #64748b; font-size: 13px; }
+        td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+        .footer { margin-top: 60px; font-size: 12px; color: #94a3b8; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 20px; }
+        @media print {
+            .no-print { display: none; }
+            body { padding: 0; }
+            .info-box { border: 1px solid #ccc; }
+        }
+        .btn-print { background: #3b82f6; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="no-print" style="margin-bottom: 20px; text-align: right;">
+        <button class="btn-print" onclick="window.print()">Print / Download PDF</button>
+        <button class="btn-print" style="background:#64748b;" onclick="window.history.back()">Back</button>
+    </div>
+
+    <div class="header">
+        <div class="logo">PneumoTrack <span style="font-weight:400; font-size:16px; color:#64748b;">| Clinical Analysis Report</span></div>
+        <div style="text-align:right;">
+            <div class="label">Physician / Institution</div>
+            <div class="value" style="font-size:14px;">{{ profile.name }} | {{ profile.institution }}</div>
+            <div class="label" style="margin-top:5px;">Report Date</div>
+            <div class="value" style="font-size:14px;">2026-04-22</div>
+        </div>
+    </div>
+
+    <div class="patient-info">
+        <div class="info-box">
+            <div class="label">Patient Identifier</div>
+            <div class="value">#{{ patient.patient_id }}</div>
+            <div style="font-size:12px; color:#94a3b8;">ICBHI-2017 Benchmark Dataset</div>
+        </div>
+        <div class="info-box">
+            <div class="label">Risk Assessment</div>
+            <div class="value" style="display:flex; align-items:center; gap:10px;">
+                {{ patient.risk_score|int }}%
+                <span class="stage {% if patient.risk_score > 60 %}high{% elif patient.risk_score > 30 %}med{% else %}low{% endif %}">
+                    {{ risk_level }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <h3 style="border-left: 4px solid #3b82f6; padding-left: 12px;">Diagnostic Summary</h3>
+    <p>Based on automated acoustic feature analysis and temporal drift tracking, the patient is currently staged as <strong>{{ risk_level }}</strong>. Dominant respiratory sounds detected include <strong>{{ patient.dominant_label }}</strong> across {{ cycles|length }} analyzed cycles.</p>
+
+    <h3 style="margin-top:30px; border-left: 4px solid #3b82f6; padding-left: 12px;">Clinical Recommendation</h3>
+    <div class="info-box" style="background:#f0f9ff; border-color:#bae6fd;">
+        {% if patient.risk_score > 60 %}
+            <p><strong>URGENT:</strong> High acoustic drift detected. Recommend immediate clinical evaluation and pulmonary function testing. Monitor for acute exacerbation symptoms.</p>
+        {% elif patient.risk_score > 30 %}
+            <p><strong>OBSERVATION:</strong> Moderate acoustic variation. Recommend follow-up assessment within 48-72 hours and review of current medication adherence.</p>
+        {% else %}
+            <p><strong>STABLE:</strong> Baseline acoustic features maintained. Continue standard monitoring protocol and scheduled check-ups.</p>
+        {% endif %}
+    </div>
+
+    <h3 style="margin-top:30px; border-left: 4px solid #3b82f6; padding-left: 12px;">Feature Interpretation Guide</h3>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 13px;">
+        <div>
+            <p><strong>MFCCs:</strong> Acoustic texture. Describes the overall 'shape' of the sound spectrum.</p>
+            <p><strong>Spectral Centroid:</strong> Sharpness. Higher values indicate more high-frequency noise (hissing).</p>
+        </div>
+        <div>
+            <p><strong>RMS Energy:</strong> Loudness. Reflects the physical intensity of the breathing effort.</p>
+            <p><strong>ZCR:</strong> Complexity. Measures how often the sound signal fluctuates.</p>
+        </div>
+    </div>
+
+    <h3 style="margin-top:40px; border-left: 4px solid #3b82f6; padding-left: 12px;">Recent Respiratory Cycles</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Cycle #</th>
+                <th>Classification</th>
+                <th>Acoustic File Reference</th>
+                <th>Relative Risk</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for cycle in cycles %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td><strong>{{ cycle.label }}</strong></td>
+                <td style="font-family:monospace; font-size:12px;">{{ cycle.filename }}</td>
+                <td>{{ "%.1f"|format(patient.risk_score) }}%</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="footer">
+        <p>This report was generated automatically by PneumoTrack AI Engine v1.0. For clinical use only in conjunction with professional medical oversight.</p>
+        <p>&copy; 2026 PneumoTrack Respiratory health monitoring.</p>
+    </div>
+
+    <script>
+        // Auto-trigger print if requested via query param
+        if (window.location.search.includes('print=true')) {
+            window.print();
+        }
+    </script>
+</body>
+</html>

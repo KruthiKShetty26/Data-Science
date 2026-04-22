@@ -1,0 +1,90 @@
+{% extends "layout.html" %}
+{% block title %}SHAP Features{% endblock %}
+{% block page_title %}SHAP Features{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center gap-3 mb-1">
+    <a href="{{ url_for('overview') }}" class="btn btn-outline-secondary btn-sm" title="Back to Dashboard">
+        <i class="fa-solid fa-arrow-left"></i>
+    </a>
+    <h1 class="page-heading mb-0">SHAP Feature Importance</h1>
+</div>
+<p class="page-sub">Understand which acoustic features drive the model's predictions using SHAP analysis.</p>
+
+<div class="glass-card mb-4">
+    <form method="get" action="{{ url_for('shap_features') }}">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label" style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;font-weight:600;">Select Patient</label>
+                <select name="pid" class="form-select" style="background:var(--bg-2);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;">
+                    <option value="">— Choose a Patient —</option>
+                    {% for pid in patient_ids %}
+                    <option value="{{ pid }}" {% if pid == selected_pid %}selected{% endif %}>#{{ pid }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn-custom btn w-100"><i class="fa-solid fa-brain me-1"></i> Explain</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+{% if shap_image_exists %}
+        <div class="glass-card mb-4">
+            <h5 class="fw-bold mb-3"><i class="fa-solid fa-circle-info me-2 text-info"></i>Clinical Interpretation</h5>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <p class="small mb-2"><strong style="color:var(--accent);">MFCCs:</strong> Acoustic texture. Represents the spectral envelope and timbral characteristics of the breath sound.</p>
+                    <p class="small mb-2"><strong style="color:var(--accent);">Spectral Centroid:</strong> "Brightness" of the sound. Higher values often indicate sharper, hissier sounds like wheezes.</p>
+                </div>
+                <div class="col-md-6">
+                    <p class="small mb-2"><strong style="color:var(--accent);">RMS Energy:</strong> Magnitude of the sound. Helps distinguish between silent phases and active breathing cycles.</p>
+                    <p class="small mb-2"><strong style="color:var(--accent);">ZCR:</strong> Zero-Crossing Rate. Measures the noise level or "hissiness" in the recording.</p>
+                </div>
+            </div>
+            <div class="mt-3 p-2 rounded" style="background: rgba(255,255,255,0.05); border-left: 3px solid var(--accent);">
+                <p class="mb-0 x-small text-muted italic">Note: Positive SHAP values (pointing right) increase the predicted risk score, while negative values (pointing left) decrease it.</p>
+            </div>
+        </div>
+
+        <div class="glass-card text-center mb-4">
+    <div class="section-title mb-3"><i class="fa-solid fa-chart-bar"></i> SHAP Waterfall — Patient #{{ selected_pid }}</div>
+    <div class="text-center">
+        <img src="{{ url_for('shap_image', filename=shap_image_name) }}" alt="SHAP Waterfall Plot" class="img-fluid rounded" style="max-height:500px; object-fit:contain;">
+    </div>
+</div>
+
+{% if top_features %}
+<div class="glass-card">
+    <div class="section-title mb-3"><i class="fa-solid fa-ranking-star"></i> Top Contributing Features</div>
+    <div class="table-responsive">
+        <table class="table table-sm mb-0">
+            <thead><tr><th>Rank</th><th>Feature</th><th>SHAP Value</th><th>Impact</th></tr></thead>
+            <tbody>
+                {% for feat in top_features %}
+                <tr>
+                    <td class="fw-bold" style="color:var(--text-muted);">#{{ loop.index }}</td>
+                    <td class="fw-semibold">{{ feat.name }}</td>
+                    <td>{{ "%.4f"|format(feat.value) }}</td>
+                    <td>
+                        <div class="progress" style="height:6px; width:120px; background:rgba(255,255,255,0.07);">
+                            <div class="progress-bar" style="width:{{ [feat.abs_pct, 100]|min }}%; background:{% if feat.value > 0 %}var(--danger){% else %}var(--accent){% endif %};"></div>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% else %}
+<div class="coming-soon-wrap">
+    <div class="coming-soon-icon" style="background:rgba(139,92,246,0.12);"><i class="fa-solid fa-brain" style="color:var(--purple);"></i></div>
+    <h3 style="font-weight:700;">SHAP Explainability</h3>
+    <p style="color:var(--text-secondary);max-width:380px;">Select a patient to generate on-the-fly SHAP waterfall plots showing which acoustic features contributed most to the model's prediction.</p>
+</div>
+{% endif %}
+{% endblock %}

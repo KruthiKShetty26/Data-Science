@@ -1,0 +1,117 @@
+{% extends "layout.html" %}
+{% block title %}Temporal Analysis{% endblock %}
+{% block page_title %}Temporal Analysis{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center gap-3 mb-1">
+    <a href="{{ url_for('overview') }}" class="btn btn-outline-secondary btn-sm" title="Back to Dashboard">
+        <i class="fa-solid fa-arrow-left"></i>
+    </a>
+    <h1 class="page-heading mb-0">Temporal Analysis</h1>
+</div>
+<p class="page-sub">Track how acoustic features evolve across recording cycles for individual patients.</p>
+
+<div class="glass-card mb-4">
+    <form method="get" action="{{ url_for('temporal_analysis') }}">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label" style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;font-weight:600;">Select Patient</label>
+                <select name="pid" class="form-select" style="background:var(--bg-2);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;">
+                    <option value="">— Choose a Patient —</option>
+                    {% for pid in patient_ids %}
+                    <option value="{{ pid }}" {% if pid == selected_pid %}selected{% endif %}>#{{ pid }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn-custom btn w-100"><i class="fa-solid fa-magnifying-glass me-1"></i> Analyze</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+{% if chart_data %}
+<div class="glass-card mb-4">
+    <div class="section-title mb-3"><i class="fa-solid fa-chart-line"></i> Longitudinal Feature Progression — Patient #{{ selected_pid }}</div>
+    <div id="temporalChart" style="height:400px;"></div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="glass-card">
+            <div class="section-title mb-3"><i class="fa-solid fa-table"></i> Feature Statistics</div>
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead><tr><th>Feature</th><th>Mean</th><th>Std Dev</th><th>Trend</th></tr></thead>
+                    <tbody>
+                        {% for feat in feature_stats %}
+                        <tr>
+                            <td class="fw-semibold">{{ feat.name }}</td>
+                            <td>{{ "%.4f"|format(feat.mean) }}</td>
+                            <td>{{ "%.4f"|format(feat.std) }}</td>
+                            <td>
+                                {% if feat.trend > 0 %}
+                                    <span style="color:var(--danger);"><i class="fa-solid fa-arrow-trend-up me-1"></i>+{{ "%.4f"|format(feat.trend) }}</span>
+                                {% else %}
+                                    <span style="color:var(--success);"><i class="fa-solid fa-arrow-trend-down me-1"></i>{{ "%.4f"|format(feat.trend) }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="glass-card">
+            <div class="section-title mb-3"><i class="fa-solid fa-circle-info"></i> Patient Summary</div>
+            <div class="d-flex flex-column gap-3">
+                <div class="d-flex justify-content-between align-items-center py-2" style="border-bottom:1px solid var(--border);">
+                    <span style="color:var(--text-secondary);">Total Cycles Analyzed</span>
+                    <strong style="font-size:20px;">{{ chart_data.cycles | length }}</strong>
+                </div>
+                <div class="d-flex justify-content-between align-items-center py-2" style="border-bottom:1px solid var(--border);">
+                    <span style="color:var(--text-secondary);">Risk Score</span>
+                    <strong>{{ "%.1f"|format(patient_risk.risk_score) }}</strong>
+                </div>
+                <div class="d-flex justify-content-between align-items-center py-2">
+                    <span style="color:var(--text-secondary);">Dominant Label</span>
+                    <strong>{{ patient_risk.dominant_label }}</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% else %}
+<div class="coming-soon-wrap">
+    <div class="coming-soon-icon" style="background:rgba(59,130,246,0.12);"><i class="fa-solid fa-chart-line" style="color:var(--accent);"></i></div>
+    <h3 style="font-weight:700;">Select a Patient</h3>
+    <p style="color:var(--text-secondary);max-width:360px;">Choose a patient from the dropdown above to visualize their temporal acoustic feature trends across all recorded breathing cycles.</p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if chart_data %}
+<script>
+const cd = {{ chart_data | tojson }};
+function norm(arr){const mn=Math.min(...arr),mx=Math.max(...arr);return arr.map(x=>mx===mn?0.5:(x-mn)/(mx-mn));}
+const traces = [
+    {x:cd.cycles,y:norm(cd.mfcc_1),name:'MFCC 1',type:'scatter',mode:'lines+markers',line:{color:'#3B82F6',width:2}},
+    {x:cd.cycles,y:norm(cd.rms),name:'RMS Energy',type:'scatter',mode:'lines+markers',line:{color:'#10B981',width:2}},
+    {x:cd.cycles,y:norm(cd.centroid),name:'Spectral Centroid',type:'scatter',mode:'lines+markers',line:{color:'#F59E0B',width:2}},
+    {x:cd.cycles,y:norm(cd.zcr),name:'ZCR',type:'scatter',mode:'lines+markers',line:{color:'#EF4444',width:2}}
+];
+Plotly.newPlot('temporalChart', traces, {
+    paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',
+    font:{color:'#7A8FAF',family:'Inter'},
+    margin:{t:10,r:20,l:30,b:40},
+    xaxis:{title:'Cycle',gridcolor:'rgba(255,255,255,0.05)',zeroline:false},
+    yaxis:{title:'Normalized Value',gridcolor:'rgba(255,255,255,0.05)',zeroline:false,range:[-0.1,1.1]},
+    legend:{orientation:'h',y:-0.2}
+},{responsive:true,displayModeBar:false});
+</script>
+{% endif %}
+{% endblock %}

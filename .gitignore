@@ -1,0 +1,10 @@
+data/*.csv 
+data/*.npy 
+data/*.pkl 
+models/*.keras 
+models/*.pkl 
+outputs/ 
+venv/ 
+__pycache__/ 
+.ipynb_checkpoints/ 
+data/audio_and_txt_files/ 

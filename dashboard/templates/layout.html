@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}PneumoTrack Dashboard{% endblock %} — AI Respiratory Monitoring</title>
+    <meta name="description" content="PneumoTrack: Temporal Risk Forecasting and AI-powered respiratory diagnostics.">
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <!-- Plotly -->
+    <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+</head>
+<body>
+
+<div class="app-shell">
+
+    <!-- ============================================================
+         SIDEBAR
+    ============================================================ -->
+    <aside class="sidebar" id="sidebar">
+
+        <!-- Brand -->
+        <div class="sidebar-brand">
+            <div class="brand-icon">
+                <i class="fa-solid fa-wind" style="color:#fff;"></i>
+            </div>
+            <div class="brand-text">
+                <span class="brand-name">PneumoTrack</span>
+                <span class="brand-sub">Temporal AI v1.0</span>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="sidebar-nav" id="sidebarNav">
+
+            <div class="nav-section-label">System</div>
+
+            <a href="{{ url_for('overview') }}"
+               class="nav-item {% if active_page == 'overview' %}active{% endif %}"
+               id="nav-overview" title="Overview">
+                <span class="nav-icon"><i class="fa-solid fa-house-medical"></i></span>
+                <span class="nav-label">Overview</span>
+            </a>
+
+            <a href="{{ url_for('alert_dashboard') }}"
+               class="nav-item {% if active_page == 'alert_dashboard' %}active{% endif %}"
+               id="nav-alerts" title="Alert Dashboard">
+                <span class="nav-icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
+                <span class="nav-label">Alert Dashboard</span>
+            </a>
+
+            <div class="nav-section-label">Monitoring</div>
+
+            <a href="{{ url_for('patient_monitor') }}"
+               class="nav-item {% if active_page == 'patient_monitor' %}active{% endif %}"
+               id="nav-monitor" title="Patient Monitor">
+                <span class="nav-icon"><i class="fa-solid fa-user-doctor"></i></span>
+                <span class="nav-label">Patient Monitor</span>
+            </a>
+
+            <a href="{{ url_for('temporal_analysis') }}"
+               class="nav-item {% if active_page == 'temporal_analysis' %}active{% endif %}"
+               id="nav-temporal" title="Temporal Analysis">
+                <span class="nav-icon"><i class="fa-solid fa-clock-rotate-left"></i></span>
+                <span class="nav-label">Temporal Analysis</span>
+            </a>
+
+            <div class="nav-section-label">Intelligence</div>
+
+            <a href="{{ url_for('shap_features') }}"
+               class="nav-item {% if active_page == 'shap_features' %}active{% endif %}"
+               id="nav-shap" title="SHAP Features">
+                <span class="nav-icon"><i class="fa-solid fa-brain"></i></span>
+                <span class="nav-label">SHAP Features</span>
+            </a>
+
+            <a href="{{ url_for('model_metrics') }}"
+               class="nav-item {% if active_page == 'model_metrics' %}active{% endif %}"
+               id="nav-metrics" title="Model Metrics">
+                <span class="nav-icon"><i class="fa-solid fa-chart-simple"></i></span>
+                <span class="nav-label">Model Metrics</span>
+            </a>
+
+            <div class="nav-section-label">Clinical Tools</div>
+
+            <a href="{{ url_for('live_predict') }}"
+               class="nav-item {% if active_page == 'live_predict' %}active{% endif %}"
+               id="nav-predict" title="Live Predict">
+                <span class="nav-icon"><i class="fa-solid fa-stethoscope"></i></span>
+                <span class="nav-label">Live Predict</span>
+            </a>
+
+            <a href="{{ url_for('how_to_record') }}"
+               class="nav-item {% if active_page == 'how_to_record' %}active{% endif %}"
+               id="nav-record" title="How to Record">
+                <span class="nav-icon"><i class="fa-solid fa-book-medical"></i></span>
+                <span class="nav-label">How to Record</span>
+            </a>
+
+        </nav>
+
+        <!-- Collapse Toggle -->
+        <div class="sidebar-footer">
+            <button class="collapse-btn" id="collapseBtn" onclick="toggleSidebar()" title="Collapse sidebar">
+                <i class="fa-solid fa-angles-left" id="collapseIcon"></i>
+                <span class="cb-label">Collapse</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- ============================================================
+         MAIN CONTENT
+    ============================================================ -->
+    <div class="main-content" id="mainContent">
+
+        <!-- Top Bar -->
+        <header class="topbar">
+            <span class="topbar-title">{% block page_title %}Dashboard{% endblock %}</span>
+            <div class="d-flex align-items-center gap-3">
+                <span class="topbar-badge">
+                    <i class="fa-solid fa-circle" style="font-size:7px; color: var(--success); margin-right:5px;"></i>
+                    PneumoTrack Active
+                </span>
+                <a href="{{ url_for('profile') }}" class="text-decoration-none" title="User Profile">
+                    <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--purple));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;">
+                        {{ user_profile.name[0] if user_profile.name else 'P' }}
+                    </div>
+                </a>
+            </div>
+        </header>
+
+        <!-- Page Body -->
+        <main class="page-content">
+            {% block content %}{% endblock %}
+        </main>
+
+    </div><!-- /main-content -->
+</div><!-- /app-shell -->
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Sidebar Toggle Script -->
+<script>
+    const sidebar      = document.getElementById('sidebar');
+    const mainContent  = document.getElementById('mainContent');
+    const collapseIcon = document.getElementById('collapseIcon');
+    const COLLAPSED_KEY = 'sidebar_collapsed';
+
+    function toggleSidebar() {
+        const isNowCollapsed = sidebar.classList.toggle('collapsed');
+        mainContent.classList.toggle('expanded', isNowCollapsed);
+        collapseIcon.classList.toggle('fa-angles-left',  !isNowCollapsed);
+        collapseIcon.classList.toggle('fa-angles-right', isNowCollapsed);
+        localStorage.setItem(COLLAPSED_KEY, isNowCollapsed ? '1' : '0');
+    }
+
+    // Restore state
+    if (localStorage.getItem(COLLAPSED_KEY) === '1') {
+        sidebar.classList.add('collapsed');
+        mainContent.classList.add('expanded');
+        collapseIcon.classList.replace('fa-angles-left', 'fa-angles-right');
+    }
+</script>
+
+{% block scripts %}{% endblock %}
+</body>
+</html>

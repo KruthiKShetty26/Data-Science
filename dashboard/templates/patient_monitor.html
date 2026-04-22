@@ -1,0 +1,75 @@
+{% extends "layout.html" %}
+{% block title %}Patient Monitor{% endblock %}
+{% block page_title %}Patient Monitor Registry{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex align-items-center gap-3">
+        <a href="{{ url_for('overview') }}" class="btn btn-outline-secondary btn-sm" title="Back to Dashboard">
+            <i class="fa-solid fa-arrow-left"></i>
+        </a>
+        <div>
+            <h1 class="page-heading mb-0">Patient Monitor</h1>
+            <p class="page-sub mb-0">Full registry of patients with real-time risk staging.</p>
+        </div>
+    </div>
+    <div class="dropdown">
+        <button class="btn btn-secondary dropdown-toggle btn-sm" type="button" data-bs-toggle="dropdown">
+            <i class="fa-solid fa-sort me-1"></i> Sort By
+        </button>
+        <ul class="dropdown-menu dropdown-menu-dark">
+            <li><a class="dropdown-item" href="{{ url_for('patient_monitor', sort='id') }}">Patient ID</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('patient_monitor', sort='risk_desc') }}">Risk Severity</a></li>
+        </ul>
+    </div>
+</div>
+
+<div class="glass-card">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Patient ID</th>
+                    <th>Dominant Label</th>
+                    <th>Risk Score</th>
+                    <th>Clinical Stage</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in patients %}
+                <tr onclick="window.location='{{ url_for('patient_detail', patient_id=p.patient_id) }}';" style="cursor:pointer;">
+                    <td>
+                        <span class="fw-bold text-primary">#{{ p.patient_id }}</span>
+                    </td>
+
+                    <td>
+                        <span class="badge rounded-pill bg-dark border border-secondary text-secondary fw-normal">
+                            {{ p.dominant_label }}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fw-semibold">{{ p.risk_score|int }}%</span>
+                            <div class="progress" style="height:4px; width:60px; background:rgba(255,255,255,0.05);">
+                                <div class="progress-bar" style="width:{{ p.risk_score }}%; background: {% if p.risk_class == 'high' %}var(--danger){% elif p.risk_class == 'med' %}var(--warning){% else %}var(--success){% endif %};"></div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="risk-badge {{ p.risk_class }}">
+                            <i class="fa-solid fa-circle-info me-1"></i> {{ p.risk_level }}
+                        </span>
+                    </td>
+                    <td class="text-end">
+                        <a href="{{ url_for('patient_detail', patient_id=p.patient_id) }}" class="btn btn-link btn-sm text-accent text-decoration-none">
+                            Details <i class="fa-solid fa-chevron-right ms-1" style="font-size:10px;"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

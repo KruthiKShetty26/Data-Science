@@ -1,0 +1,166 @@
+{% extends "layout.html" %}
+{% block title %}Patient #{{ patient_id }}{% endblock %}
+{% block page_title %}Patient Monitor — #{{ patient_id }}{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Patient Info Side -->
+    <div class="col-lg-4">
+        <div class="glass-card mb-4">
+            <div class="d-flex align-items-center gap-3 mb-4">
+                <div style="width:64px;height:64px;border-radius:16px;background:rgba(59,130,246,0.1);display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--accent);">
+                    <i class="fa-solid fa-user-pulse"></i>
+                </div>
+                <div>
+                    <h2 class="mb-0" style="font-weight:700;">Patient #{{ patient_id }}</h2>
+                    <span class="text-muted">ID: ICBHI-2017-{{ patient_id }}</span>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="text-muted small text-uppercase fw-bold mb-2 d-block" style="letter-spacing:1px;">Clinical Risk Stage</label>
+                <div class="p-3 rounded-3 mb-2 d-flex align-items-center justify-content-between" style="background:rgba(255,255,255,0.03); border:1px solid var(--border);">
+                    <span class="risk-badge {{ risk_class }} mb-0" style="font-size:16px; padding: 8px 16px;">
+                        {{ risk_level }}
+                    </span>
+                    <span class="fw-bold" style="font-size:20px; color:var(--text-primary);">{{ risk_score|int }}%</span>
+                </div>
+                <div class="progress" style="height:6px; background:rgba(255,255,255,0.05);">
+                    <div class="progress-bar" style="width:{{ risk_score }}%; background: {% if risk_class == 'high' %}var(--danger){% elif risk_class == 'med' %}var(--warning){% else %}var(--success){% endif %};"></div>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="text-muted small text-uppercase fw-bold mb-2 d-block" style="letter-spacing:1px;">Clinical Recommendation</label>
+                <div class="p-3 rounded-3" style="background:rgba(59,130,246,0.05); border:1px solid rgba(59,130,246,0.2);">
+                    {% if risk_score > 60 %}
+                        <p class="small mb-0 text-danger"><i class="fa-solid fa-triangle-exclamation me-2"></i><strong>Urgent Evaluation:</strong> Significant acoustic drift detected. Recommend clinical review within 24 hours.</p>
+                    {% elif risk_score > 30 %}
+                        <p class="small mb-0 text-warning"><i class="fa-solid fa-clock me-2"></i><strong>Active Monitoring:</strong> Moderate variation. Schedule follow-up assessment in 2-3 days.</p>
+                    {% else %}
+                        <p class="small mb-0 text-success"><i class="fa-solid fa-circle-check me-2"></i><strong>Stable:</strong> Patient maintains baseline acoustic profile. Continue routine care.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="section-title mb-3">Recent Cycles</div>
+            <div class="d-flex flex-column gap-2 mb-3">
+                {% for cycle in recent_cycles %}
+                <div class="alert-item py-2 px-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="small fw-semibold">{{ cycle.label }}</span>
+                        <span class="text-muted" style="font-size:10px;">{{ cycle.filename }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            {% if recent_cycles %}
+            <div class="mb-4">
+                <label class="text-muted small text-uppercase fw-bold mb-2 d-block" style="letter-spacing:1px;">Audio Sample (Latest)</label>
+                <audio controls class="w-100">
+                    <source src="{{ url_for('get_audio', filename=recent_cycles[0].filename) }}" type="audio/wav">
+                    Your browser does not support the audio element.
+                </audio>
+            </div>
+            {% endif %}
+            
+            <div class="mt-4 d-flex flex-column gap-2">
+                <a href="{{ url_for('patient_report', patient_id=patient_id, print='true') }}" target="_blank" class="btn btn-primary w-100 btn-sm">
+                    <i class="fa-solid fa-file-pdf me-2"></i>Generate Clinical PDF
+                </a>
+                <p class="text-muted text-center" style="font-size:10px;">Note: Opens a print-friendly view. Select 'Save as PDF' in the print dialog.</p>
+                <a href="{{ url_for('patient_monitor') }}" class="btn btn-outline-secondary w-100 btn-sm">
+                    <i class="fa-solid fa-arrow-left me-2"></i>Back to Registry
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts / Analysis Side -->
+    <div class="col-lg-8">
+        <!-- Feature Trends -->
+        <div class="glass-card mb-4">
+            <div class="section-title mb-3"><i class="fa-solid fa-chart-line"></i> Longitudinal Feature Drift</div>
+            <div id="trendChart" style="height: 350px;"></div>
+        </div>
+
+        <!-- Clinical Benchmarking -->
+        <div class="glass-card mb-4">
+            {% set pat_avg = (chart_data.rms|sum / chart_data.rms|length) if (chart_data.rms and chart_data.rms|length > 0) else 0.0001 %}
+            {% set max_val = [pat_avg, clinical_norms.rms]|max * 1.2 %}
+            <div class="section-title mb-3"><i class="fa-solid fa-scale-balanced"></i> Acoustic Clinical Benchmarking</div>
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <p class="small text-muted mb-4">Comparison of current patient's average RMS Energy (loudness) against the global baseline for 'Normal' respiratory sounds.</p>
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="small fw-bold">Patient Average</span>
+                            <span class="small">{{ "%.4f"|format(pat_avg) }}</span>
+                        </div>
+                        <div class="progress" style="height:8px; background:rgba(255,255,255,0.05);">
+                            <div class="progress-bar bg-primary" style="width: {{ (pat_avg / max_val * 100)|int }}%;"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="small fw-bold">Clinical Normal (Norm)</span>
+                            <span class="small">{{ "%.4f"|format(clinical_norms.rms) }}</span>
+                        </div>
+                        <div class="progress" style="height:8px; background:rgba(255,255,255,0.05);">
+                            <div class="progress-bar bg-success" style="width: {{ (clinical_norms.rms / max_val * 100)|int }}%;"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 text-center">
+                    <div class="p-4 rounded-circle border border-2 border-primary d-inline-block" style="width:120px; height:120px; background:rgba(59,130,246,0.05);">
+                        <div class="h3 fw-bold mb-0 mt-2 text-accent">
+                            {% set dev = ((pat_avg - clinical_norms.rms) / clinical_norms.rms * 100)|int %}
+                            {{ '+' if dev > 0 }}{{ dev }}%
+                        </div>
+                        <div class="x-small text-muted text-uppercase fw-bold">Deviation</div>
+                    </div>
+                    <p class="small mt-3 mb-0 text-muted">Acoustic Intensity Variance</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SHAP Plot -->
+        {% if shap_image_exists %}
+        <div class="glass-card">
+            <div class="section-title mb-3"><i class="fa-solid fa-brain"></i> Explainable AI (SHAP Waterfall)</div>
+            <div class="text-center p-3">
+                <img src="{{ url_for('shap_image', filename=shap_image_name) }}" alt="SHAP Plot" class="shap-plot">
+                <p class="text-muted small mt-3">This chart identifies which acoustic features drove the prediction for the most recent cycle.</p>
+            </div>
+        </div>
+        {% else %}
+        <div class="glass-card d-flex align-items-center justify-content-center py-5">
+            <div class="text-center text-muted">
+                <i class="fa-solid fa-microchip mb-3" style="font-size:32px; opacity:0.3;"></i>
+                <p>Select "Generate SHAP" in the Monitor to view explainability data.</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const data = [
+    { x: {{ chart_data.cycles|tojson }}, y: {{ chart_data.mfcc_1|tojson }}, name: 'MFCC 1', type: 'scatter', line: {color:'#3B82F6'} },
+    { x: {{ chart_data.cycles|tojson }}, y: {{ chart_data.rms|tojson }}, name: 'RMS Energy', type: 'scatter', line: {color:'#10B981'} },
+    { x: {{ chart_data.cycles|tojson }}, y: {{ chart_data.centroid|tojson }}, name: 'Centroid', type: 'scatter', line: {color:'#8B5CF6'} }
+];
+const layout = {
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor: 'rgba(0,0,0,0)',
+    font: { color: '#7A8FAF', family: 'Inter' },
+    margin: { t: 20, r: 20, l: 40, b: 40 },
+    xaxis: { title: 'Respiratory Cycles', gridcolor: 'rgba(255,255,255,0.05)', zeroline: false },
+    yaxis: { title: 'Normalized Intensity', gridcolor: 'rgba(255,255,255,0.05)', zeroline: false }
+};
+Plotly.newPlot('trendChart', data, layout, {responsive: true, displayModeBar: false});
+</script>
+{% endblock %}
