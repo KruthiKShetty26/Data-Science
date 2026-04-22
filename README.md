@@ -60,4 +60,4 @@ The project is structured into 5 specialized Jupyter Notebooks:
 4. Access via browser: `http://127.0.0.1:5000`
 
 ---
-*Developed by Kruthi K Shetty*
+
